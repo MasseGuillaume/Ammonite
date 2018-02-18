@@ -13,6 +13,10 @@ trait AmmModule extends mill.scalalib.CrossSbtModule{
     def ivyDeps = Agg(ivy"com.lihaoyi::utest:0.6.0")
     def testFramework = "utest.runner.Framework"
   }
+  def allIvyDeps = T{transitiveIvyDeps() ++ scalaLibraryIvyDeps()}
+  def externalSources = T{
+    resolveDeps(allIvyDeps, sources = true)()
+  }
 }
 
 object ops extends Cross[OpsModule](binCrossScalaVersions:_*)
@@ -44,6 +48,10 @@ object amm extends Cross[MainModule](fullCrossScalaVersions:_*){
       ivy"com.lihaoyi::pprint:0.5.2",
       ivy"com.lihaoyi::fansi:0.2.4"
     )
+    def compileIvyDeps = Agg(
+      ivy"org.scala-lang:scala-reflect:$crossScalaVersion"
+    )
+
   }
 
 
@@ -58,8 +66,7 @@ object amm extends Cross[MainModule](fullCrossScalaVersions:_*){
 
     def generatedSources = T{
       import ammonite.ops._
-      mkdir(T.ctx().dest)
-      cp(build.basePath/'project/"Constants.scala", T.ctx().dest/"Constants.scala")
+      cp(build.millSourcePath/'project/"Constants.scala", T.ctx().dest/"Constants.scala")
       Seq(PathRef(T.ctx().dest))
     }
   }
@@ -89,10 +96,10 @@ object amm extends Cross[MainModule](fullCrossScalaVersions:_*){
     )
 
     object test extends Tests{
-      def resources = T.input {
+      def resources = T.sources {
         super.resources() ++
-          ReplModule.this.sources() ++
-          ReplModule.this.externalCompileDepSources()
+        ReplModule.this.sources() ++
+        ReplModule.this.externalSources()
       }
     }
   }
@@ -119,7 +126,7 @@ class MainModule(val crossScalaVersion: String) extends AmmModule{
       amm.interp().sources() ++
       amm.repl().sources() ++
       sources() ++
-      externalCompileDepSources()
+      externalSources()
 
 
 
@@ -150,11 +157,6 @@ class ShellModule(val crossScalaVersion: String) extends AmmModule{
 object integration extends Cross[IntegrationModule](fullCrossScalaVersions:_*)
 class IntegrationModule(val crossScalaVersion: String) extends AmmModule{
   def moduleDeps = Seq(ops(), amm())
-  //  (test in Test) := (test in Test).dependsOn(integrationTasks:_*).value,
-  //  (run in Test) := (run in Test).dependsOn(integrationTasks:_*).evaluated,
-  //  (testOnly in Test) := (testOnly in Test).dependsOn(integrationTasks:_*).evaluated,
-  //  (console in Test) := (console in Test).dependsOn(integrationTasks:_*).value,
-  //  initialCommands in (Test, console) := "ammonite.integration.Main.main(null)"
   object test extends Tests {
     def forkEnv = super.forkEnv() ++ Seq(
       "AMMONITE_TEST_SHELL" -> shell().jar().path.toString,
