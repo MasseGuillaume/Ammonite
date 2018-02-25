@@ -1,6 +1,6 @@
 package ammonite.session
 
-import ammonite.TestRepl
+import ammonite.DualTestRepl
 import ammonite.TestUtils._
 import utest._
 
@@ -9,7 +9,7 @@ import scala.collection.{immutable => imm}
 object ProjectTests extends TestSuite{
   val tests = Tests{
     println("ProjectTests")
-    val check = new TestRepl()
+    val check = new DualTestRepl()
     'load {
       'ivy {
         'standalone - {
@@ -285,6 +285,23 @@ object ProjectTests extends TestSuite{
         import com.thoughtworks.deeplearning._
 
         @ Factory[plugins.Builtins].newInstance()
+        """
+      )
+    }
+
+    'jadb {
+      // tests for jitpack and optional dependencies
+      check.session(
+        """
+        @ interp.repositories() ++= Seq(
+        @     coursier.maven.MavenRepository("https://jitpack.io")
+        @ )
+
+        @ import $ivy.`com.github.vidstige:jadb:v1.0.1`
+        import $ivy.$
+
+        @ import se.vidstige.jadb.JadbConnection
+        import se.vidstige.jadb.JadbConnection
         """
       )
     }

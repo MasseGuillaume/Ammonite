@@ -350,6 +350,12 @@ lazy val readme = ScalatexReadme(
       sbt.IO.copyDirectory(folder, apiFolder/name, overwrite = true)
     }
   }).evaluated,
+  envVars in Test := Map(
+    "AMMONITE_TEST_SHELL" -> (packageBin in Compile).value.toString,
+    "AMMONITE_TEST_ASSEMBLY" -> (assembly in amm).value.toString
+  ),
+  fork := true,
+  baseDirectory in (Compile, run) := (baseDirectory in (Compile, run)).value / "..",
   (unmanagedSources in Compile) += baseDirectory.value/".."/"project"/"Constants.scala"
 )
 
